@@ -1,0 +1,278 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Binary Sniper — Ultra Premium</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--gold:#f5c518;--bg:#050507;--card:#0f1113;--muted:#bfbfbf}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(180deg,#050507,#0b0c0e);color:var(--gold);font-family:'Inter',Arial,Helvetica,sans-serif}
+.container{max-width:1200px;margin:18px auto;padding:18px}
+.header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.brand{display:flex;gap:12px;align-items:center}
+.logo{width:64px;height:64px;border-radius:12px;background:linear-gradient(135deg,var(--gold),#ffd94d);display:flex;align-items:center;justify-content:center;font-weight:800;color:#070707}
+h1{margin:0;font-size:20px;color:#fff}
+.sub{color:#ddd;font-size:13px;margin-top:4px}
+.grid{display:grid;grid-template-columns:1fr 380px;gap:16px;margin-top:18px}
+.card{background:var(--card);border-radius:12px;padding:16px;border:1px solid rgba(245,197,24,0.06)}
+.controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+button{background:var(--gold);border:none;color:#070707;padding:10px 14px;border-radius:10px;font-weight:800;cursor:pointer}
+.select, input{padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
+.line{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px dashed rgba(255,255,255,0.02)}
+.line:last-child{border-bottom:none}
+.bar{height:14px;background:#222;border-radius:8px;overflow:hidden}
+.bar-fill{height:100%;width:0;background:linear-gradient(90deg,var(--gold),#ffd94d);transition:width 0.6s}
+.badge{background:rgba(255,255,255,0.03);padding:6px 10px;border-radius:8px;color:#fff;font-weight:700}
+.logs{height:300px;overflow:auto;background:#060607;padding:10px;border-radius:8px;color:#ddd;font-size:13px}
+.small{font-size:13px;color:#ccc}
+.footer{margin-top:12px;color:#bbb;text-align:center;font-size:13px}
+.signal-glow{box-shadow:0 0 18px rgba(245,197,24,0.2)}
+.pulse{animation:pulse 1.6s infinite}
+@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.02)}100%{transform:scale(1)}}
+.heat-cell{padding:8px;border-radius:8px;color:#070707;font-weight:800}
+@media(max-width:900px){.grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="brand">
+        <div class="logo">TTG</div>
+        <div>
+          <h1>The Trading God — Binary Sniper</h1>
+          <div class="sub">Ultra-premium • 1-min expiry • Live signals</div>
+        </div>
+      </div>
+      <div class="small" id="tz-info">Detecting time zone...</div>
+    </div>
+
+    <div style="margin-top:12px" class="card">
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="wssInput" placeholder="wss://your-backend.repl.co" style="flex:1;padding:10px;border-radius:8px;border:1px solid #333;background:transparent;color:inherit" />
+        <button id="wssSaveBtn">Connect</button>
+        <div id="wssStatus" class="small" style="margin-left:12px"></div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div class="small">Server Time:</div>
+              <div id="srvTime" class="small">--:--:--</div>
+            </div>
+            <div style="text-align:right">
+              <div class="small">BDT (UTC+6):</div>
+              <div id="bdTime" class="small">--:--:--</div>
+            </div>
+          </div>
+
+          <h2 id="signal-title" style="margin:12px 0 6px 0;color:#fff">No signal yet — Connect to backend</h2>
+
+          <div class="line"><div>Market</div><div id="marketType" class="badge">-</div></div>
+          <div class="line"><div>Pair</div><div id="pair" class="badge">-</div></div>
+          <div class="line"><div>Direction</div><div id="direction" class="badge">-</div></div>
+          <div class="line"><div>Entry</div><div id="entry" class="small">-</div></div>
+          <div class="line">
+            <div style="flex:1;margin-right:12px">
+              <div class="small">Confidence</div>
+              <div class="bar"><div id="barFill" class="bar-fill"></div></div>
+            </div>
+            <div style="width:110px;text-align:right">
+              <div class="small">MTG</div>
+              <div id="mtg" class="badge">-</div>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:12px;margin-top:12px">
+            <div id="countdown" class="badge">--s</div>
+            <div id="result" class="badge" style="background:rgba(0,0,0,0.45);color:#fff">Result: -</div>
+            <div style="margin-left:auto" id="safety" class="small">Safety: Stop-on-Loss recommended</div>
+          </div>
+
+          <div style="margin-top:12px" class="controls">
+            <button id="startBtn">Start</button>
+            <button id="nextBtn" disabled>Next</button>
+            <label style="display:flex;align-items:center;gap:8px" class="small"><input type="checkbox" id="autoMode"> Auto</label>
+            <label style="display:flex;align-items:center;gap:8px" class="small"><input type="checkbox" id="stopOnLoss" checked> Stop on Loss</label>
+            <select id="marketSelect" class="select"><option value="binary">Binary (1-min)</option><option value="forex">Forex</option></select>
+            <select id="pairSelect" class="select"></select>
+            <button id="reqNow">Request Now</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px">
+          <strong>Add Broker / Pair (Local)</strong>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <input id="brokerInput" placeholder="e.g. EUR/USD" />
+            <select id="brokerType" class="select"><option>Real</option><option>OTC</option></select>
+            <button id="addBrokerBtn">Add Broker</button>
+          </div>
+          <div id="brokerList" style="margin-top:10px" class="small"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <strong>Logs & Audit</strong>
+          <div id="logs" class="logs"></div>
+        </div>
+
+        <div class="card" style="margin-top:12px">
+          <strong>System Info</strong>
+          <div style="margin-top:8px" class="small">Frontend static. Backend: Node.js WebSocket server. Use the WSS input above to connect.</div>
+          <div style="margin-top:8px" class="small">To reach high accuracy, integrate your broker tick feed and exact strategy rules in the backend.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">Contact admin: @ttg_mamun — Start with small risk, test in demo.</div>
+  </div>
+
+<script>
+const wssInput = document.getElementById('wssInput');
+const wssSaveBtn = document.getElementById('wssSaveBtn');
+const wssStatus = document.getElementById('wssStatus');
+const pairSelect = document.getElementById('pairSelect');
+const brokerListEl = document.getElementById('brokerList');
+const logsEl = document.getElementById('logs');
+
+let WS = null;
+let serverTimeOffset = 0;
+
+function log(txt){
+  const t = new Date().toLocaleTimeString();
+  logsEl.innerHTML = `<div>[${t}] ${txt}</div>` + logsEl.innerHTML;
+}
+
+function setTimeDisplays(){
+  const now = new Date();
+  document.getElementById('srvTime').textContent = now.toLocaleTimeString();
+  const bd = new Date(now.getTime() + 6*60*60*1000);
+  document.getElementById('bdTime').textContent = bd.toLocaleTimeString();
+  document.getElementById('tz-info').textContent = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Unknown TZ';
+}
+setInterval(setTimeDisplays,1000);
+setTimeDisplays();
+
+function loadBrokers(){
+  const arr = JSON.parse(localStorage.getItem('tg_brokers')||'[]');
+  brokerListEl.innerHTML = '';
+  pairSelect.innerHTML = '';
+  arr.forEach(x=>{
+    const d = document.createElement('div'); d.textContent = `${x.pair} (${x.type})`; brokerListEl.appendChild(d);
+    const opt = document.createElement('option'); opt.value = x.pair; opt.textContent = x.pair; pairSelect.appendChild(opt);
+  });
+  if(arr.length===0){
+    ['EUR/USD','GBP/USD','USD/JPY','BTC/USD'].forEach(p=>{
+      const opt=document.createElement('option'); opt.value=p; opt.textContent=p; pairSelect.appendChild(opt);
+    });
+  }
+}
+document.getElementById('addBrokerBtn').addEventListener('click', ()=>{
+  const p=document.getElementById('brokerInput').value.trim();
+  const t=document.getElementById('brokerType').value;
+  if(!p) return;
+  const list=JSON.parse(localStorage.getItem('tg_brokers')||'[]');
+  list.push({pair:p,type:t});
+  localStorage.setItem('tg_brokers', JSON.stringify(list));
+  document.getElementById('brokerInput').value='';
+  loadBrokers();
+});
+loadBrokers();
+
+function initWSHandlers(ws){
+  ws.onopen = () => { wssStatus.textContent = 'Connected'; log('WS connected'); };
+  ws.onclose = () => { wssStatus.textContent = 'Disconnected'; log('WS disconnected'); };
+  ws.onerror = (e) => { wssStatus.textContent = 'Error'; console.error(e); log('WS error'); };
+  ws.onmessage = (ev) => {
+    try {
+      const msg = JSON.parse(ev.data);
+      if(msg.type === 'info' && msg.server_time){
+        serverTimeOffset = new Date(msg.server_time).getTime() - Date.now();
+      }
+      if(msg.type === 'signal') handleSignal(msg.data);
+      else if(msg.type === 'log') log(msg.data);
+      else if(msg.type === 'pairs') populatePairs(msg.data);
+    } catch(e){}
+  };
+}
+
+function connectWS(url){
+  if(WS && WS.readyState === WebSocket.OPEN) WS.close();
+  try {
+    WS = new WebSocket(url);
+  } catch(e){
+    wssStatus.textContent = 'Invalid URL';
+    return;
+  }
+  wssStatus.textContent = 'Connecting...';
+  initWSHandlers(WS);
+}
+
+wssSaveBtn.addEventListener('click', ()=>{
+  const url = wssInput.value.trim();
+  if(!url){ alert('Enter a wss:// URL'); return; }
+  localStorage.setItem('tg_wss', url);
+  connectWS(url);
+});
+const saved = localStorage.getItem('tg_wss');
+if(saved){ wssInput.value = saved; connectWS(saved); }
+
+let countdownInterval = null;
+function handleSignal(sig){
+  document.getElementById('signal-title').textContent = `Signal — ${sig.symbol}`;
+  document.getElementById('marketType').textContent = sig.market || 'binary';
+  document.getElementById('pair').textContent = sig.symbol;
+  document.getElementById('direction').textContent = sig.direction;
+  document.getElementById('entry').textContent = sig.entry || '';
+  document.getElementById('barFill').style.width = (sig.confidence||50) + '%';
+  document.getElementById('mtg').textContent = sig.mtg ? 'Suggested' : 'No';
+  document.getElementById('result').textContent = 'Result: -';
+  log(`Signal received: ${sig.symbol} ${sig.direction} (${sig.confidence}%)`);
+  if(sig.expiry_at){
+    startCountdownTo(new Date(sig.expiry_at).getTime());
+  } else {
+    startCountdownTo(Date.now() + 60000);
+  }
+}
+
+function startCountdownTo(expiryMillis){
+  clearInterval(countdownInterval);
+  function tick(){
+    const now = Date.now() + serverTimeOffset;
+    const rem = expiryMillis - now;
+    if(rem <= 0){
+      document.getElementById('countdown').textContent = 'TRADE CLOSED';
+      clearInterval(countdownInterval);
+      return;
+    }
+    const s = Math.ceil(rem / 1000);
+    document.getElementById('countdown').textContent = s + 's';
+  }
+  tick();
+  countdownInterval = setInterval(tick, 300);
+}
+
+document.getElementById('reqNow').addEventListener('click', ()=>{
+  if(!WS || WS.readyState !== WebSocket.OPEN){ log('WS not connected'); return; }
+  const payload = { type:'reqSignalNow', market: document.getElementById('marketSelect').value, pair: pairSelect.value || null };
+  WS.send(JSON.stringify(payload));
+  log('Requested immediate signal from backend');
+});
+
+function populatePairs(payload){
+  if(!payload || !payload.pairs) return;
+  pairSelect.innerHTML = '';
+  payload.pairs.forEach(p => {
+    const opt = document.createElement('option'); opt.value = p.symbol; opt.textContent = p.symbol + ' — ' + (p.type||'unknown'); pairSelect.appendChild(opt);
+  });
+}
+
+log('Frontend ready.');
+</script>
+</body>
+  </html>
