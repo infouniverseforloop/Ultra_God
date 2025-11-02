@@ -4,6 +4,41 @@ const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
 
+// --- top of server.js ---
+const pairsList = require('./pairsList'); // import final pairs
+
+// --- Combine all pairs into a single watch list ---
+const WATCH = [
+  ...pairsList.real,
+  ...pairsList.otc,
+  ...pairsList.crypto,
+  ...pairsList.commodities
+].map(s => s.trim().toUpperCase());
+
+// --- Map market type for each pair ---
+const MARKET_TYPE = {};
+pairsList.real.forEach(p => MARKET_TYPE[p.toUpperCase()] = 'real');
+pairsList.otc.forEach(p => MARKET_TYPE[p.toUpperCase()] = 'otc');
+pairsList.crypto.forEach(p => MARKET_TYPE[p.toUpperCase()] = 'crypto');
+pairsList.commodities.forEach(p => MARKET_TYPE[p.toUpperCase()] = 'commodities');
+
+// --- Initialize bars for each symbol ---
+const bars = {}; // per-symbol second bars
+
+// Example: use WATCH array anywhere in server.js
+// Periodic signal generation
+setInterval(() => {
+  WATCH.forEach(sym => {
+    if (!bars[sym] || bars[sym].length < 30) simulateTick(sym); // simulate if needed
+    const sig = computeSignalForSymbol(sym, bars, { market: MARKET_TYPE[sym] || 'binary' });
+    if (sig) {
+      db.insertSignal(sig);
+      broadcast({ type: 'signal', data: sig });
+      broadcast({ type: 'log', data: `Signal ${sig.symbol} ${sig.direction} conf:${sig.confidence}` });
+    }
+  });
+}, 5000);
+
 // === NEW MODULES (non-replacement) ===
 const rr = require('./resultResolver');
 const quotexAdapter = require('./quotexAdapter');
